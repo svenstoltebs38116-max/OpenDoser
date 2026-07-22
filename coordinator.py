@@ -9,11 +9,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+from .configuration import Configuration
 from .engine import OpenDoserEngine
 from .entity_manager import EntityManager
-from .model.nutrient import Nutrient
-from .model.recipe import Recipe
-from .model.system import System
 from .model.system_state import SystemState
 from .registry import RoleRegistry
 from .resources import ResourceManager
@@ -66,39 +64,10 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         )
 
         #
-        # Domain model
+        # Domain
         #
 
-        self.system = System(
-            recipe=Recipe(
-                id="default",
-                name="Default Recipe",
-            )
-        )
-
-        #
-        # Temporary nutrients
-        #
-
-        self.system.add_nutrient(
-            Nutrient(
-                id="ph_down",
-                name="pH Down",
-                pump_id="pump_ph_down",
-                tank_id="tank_ph_down",
-                strength=0.05,
-            )
-        )
-
-        self.system.add_nutrient(
-            Nutrient(
-                id="ec",
-                name="EC",
-                pump_id="pump_ec",
-                tank_id="tank_ec",
-                strength=0.10,
-            )
-        )
+        self.system = Configuration.create_default_system()
 
         #
         # Runtime

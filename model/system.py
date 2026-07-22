@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .feed_program import FeedProgram
 from .nutrient import Nutrient
 from .pump import Pump
 from .recipe import Recipe
@@ -36,6 +37,8 @@ class System:
 
     nutrients: dict[str, Nutrient] = field(default_factory=dict)
 
+    feed_programs: dict[str, FeedProgram] = field(default_factory=dict)
+
     #
     # Registration
     #
@@ -55,6 +58,11 @@ class System:
 
         self.nutrients[nutrient.id] = nutrient
 
+    def add_feed_program(self, feed_program: FeedProgram) -> None:
+        """Register a feed program."""
+
+        self.feed_programs[feed_program.id] = feed_program
+
     #
     # Lookup
     #
@@ -70,9 +78,17 @@ class System:
         return self.tanks.get(tank_id)
 
     def get_nutrient(self, nutrient_id: str) -> Nutrient | None:
-        """Return a nutrient."""
+        """Return a nutrient by id."""
 
         return self.nutrients.get(nutrient_id)
+
+    def get_feed_program(
+        self,
+        feed_program_id: str,
+    ) -> FeedProgram | None:
+        """Return a feed program by id."""
+
+        return self.feed_programs.get(feed_program_id)
 
     #
     # Convenience
@@ -106,4 +122,14 @@ class System:
             nutrient
             for nutrient in self.nutrients.values()
             if nutrient.enabled
+        ]
+
+    @property
+    def enabled_feed_programs(self) -> list[FeedProgram]:
+        """Return all enabled feed programs."""
+
+        return [
+            program
+            for program in self.feed_programs.values()
+            if program.enabled
         ]

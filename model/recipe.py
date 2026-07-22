@@ -13,6 +13,12 @@ class Recipe:
     name: str
 
     #
+    # Feed program
+    #
+
+    feed_program_id: str | None = None
+
+    #
     # Target values
     #
 
