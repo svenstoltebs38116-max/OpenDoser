@@ -106,8 +106,8 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         ec = self.get_role_value(Role.EC_SENSOR)
         temperature = self.get_role_value(Role.TEMPERATURE_SENSOR)
 
-        _LOGGER.info(
-            "Sensor values: ph=%r ec=%r temperature=%r",
+        _LOGGER.warning(
+            "OpenDoser sensor values: ph=%r ec=%r temperature=%r",
             ph,
             ec,
             temperature,
@@ -119,6 +119,11 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
             temperature=temperature,
             tds=None,
             salinity=None,
+        )
+
+        _LOGGER.warning(
+            "SystemState.available=%s",
+            self.system_state.available,
         )
 
         self.last_plan = self.engine.calculate(
