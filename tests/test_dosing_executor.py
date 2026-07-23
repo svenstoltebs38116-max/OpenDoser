@@ -55,6 +55,23 @@ class FailingExecutor(DosingExecutor):
         raise RuntimeError("Execution failed")
 
 
+class CancelExecutor(DosingExecutor):
+    """Executor that requests cancellation."""
+
+    def __init__(self) -> None:
+        """Initialize the executor."""
+        super().__init__()
+        self.executed_actions: list[DosingAction] = []
+
+    async def execute_action(
+        self,
+        action: DosingAction,
+    ) -> None:
+        """Execute one action and cancel afterwards."""
+        self.executed_actions.append(action)
+        self.stop()
+
+
 def create_plan(count: int) -> DosingPlan:
     """Create a dosing plan with a given number of actions."""
     plan = DosingPlan()
@@ -75,6 +92,7 @@ def test_running_initially_false() -> None:
     executor = DosingExecutor()
 
     assert executor.running is False
+    assert executor.cancelled is False
 
 
 @pytest.mark.asyncio
@@ -122,14 +140,39 @@ async def test_running_reset_after_exception() -> None:
         await executor.execute(plan)
 
     assert executor.running is False
+    assert executor.cancelled is False
 
 
-def test_stop() -> None:
-    """Stop should clear the running flag."""
+@pytest.mark.asyncio
+async def test_execute_while_running_raises() -> None:
+    """Starting execution while already running should fail."""
     executor = DosingExecutor()
 
     executor._running = True
 
+    with pytest.raises(RuntimeError):
+        await executor.execute(DosingPlan())
+
+    executor._running = False
+
+
+@pytest.mark.asyncio
+async def test_stop_cancels_remaining_actions() -> None:
+    """Execution should stop after cancellation."""
+    executor = CancelExecutor()
+    plan = create_plan(5)
+
+    await executor.execute(plan)
+
+    assert len(executor.executed_actions) == 1
+    assert executor.running is False
+    assert executor.cancelled is False
+
+
+def test_stop() -> None:
+    """Stop should request cancellation."""
+    executor = DosingExecutor()
+
     executor.stop()
 
-    assert executor.running is False
+    assert executor.cancelled is True
