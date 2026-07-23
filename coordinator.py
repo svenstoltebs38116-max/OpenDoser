@@ -9,13 +9,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .configuration import Configuration
 from .engine import OpenDoserEngine
 from .entity_manager import EntityManager
+from .model.system import System
 from .model.system_state import SystemState
 from .registry import RoleRegistry
 from .resources import ResourceManager
 from .roles import ROLE_DEFINITIONS, Role
+from .storage import SystemStorage
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,10 +65,12 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         )
 
         #
-        # Domain
+        # Storage
         #
 
-        self.system = Configuration.create_default_system()
+        self.storage = SystemStorage(hass)
+
+        self.system: System | None = None
 
         #
         # Runtime
@@ -79,8 +82,16 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
 
         self.last_plan = None
 
+    async def async_initialize(self) -> None:
+        """Load persistent configuration."""
+
+        self.system = await self.storage.load()
+
     async def _async_update_data(self):
         """Fetch current data."""
+
+        if self.system is None:
+            raise RuntimeError("Coordinator not initialized")
 
         self.system_state = SystemState(
             ph=self.get_role_value(Role.PH_SENSOR),
@@ -112,17 +123,32 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
 
         return data
 
-    def resource(self, role: Role):
+    async def save_system(self) -> None:
+        """Persist the current system."""
+
+        if self.system is not None:
+            await self.storage.save(self.system)
+
+    def resource(
+        self,
+        role: Role,
+    ):
         """Return resource."""
 
         return self.resources[role]
 
-    def get_role_state(self, role: Role):
+    def get_role_state(
+        self,
+        role: Role,
+    ):
         """Return Home Assistant state."""
 
         return self.entity_manager.get_state(role)
 
-    def get_role_value(self, role: Role):
+    def get_role_value(
+        self,
+        role: Role,
+    ):
         """Return numeric value if available."""
 
         resource = self.resources[role]

@@ -78,3 +78,48 @@ class Nutrient:
         )
 
         return volume
+
+    def to_dict(self) -> dict:
+        """Serialize the nutrient."""
+
+        return {
+            "id": self.id,
+            "name": self.name,
+            "role": self.role.value,
+            "pump_id": self.pump_id,
+            "tank_id": self.tank_id,
+            "strength": self.strength,
+            "minimum_dose_ml": self.minimum_dose_ml,
+            "maximum_dose_ml": self.maximum_dose_ml,
+            "enabled": self.enabled,
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: dict,
+    ) -> Nutrient:
+        """Deserialize a nutrient."""
+
+        role = data.get("role", NutrientRole.CUSTOM.value)
+
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            role=NutrientRole(role),
+            pump_id=data.get("pump_id", ""),
+            tank_id=data.get("tank_id", ""),
+            strength=data.get("strength", 0.0),
+            minimum_dose_ml=data.get(
+                "minimum_dose_ml",
+                0.5,
+            ),
+            maximum_dose_ml=data.get(
+                "maximum_dose_ml",
+                250.0,
+            ),
+            enabled=data.get(
+                "enabled",
+                True,
+            ),
+        )

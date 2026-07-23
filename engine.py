@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .dosing_planner import DosingPlanner
 from .model.dosing_plan import DosingPlan
 from .model.system import System
 from .model.system_state import SystemState
@@ -9,6 +10,11 @@ from .model.system_state import SystemState
 
 class OpenDoserEngine:
     """Business logic layer for OpenDoser."""
+
+    def __init__(self) -> None:
+        """Initialize the engine."""
+
+        self._planner = DosingPlanner()
 
     def calculate(
         self,
@@ -24,7 +30,7 @@ class OpenDoserEngine:
         #
 
         if not system.recipe.enabled:
-            plan.warnings.append("Recipe is disabled.")
+            plan.add_warning("Recipe is disabled.")
             return plan
 
         #
@@ -32,7 +38,7 @@ class OpenDoserEngine:
         #
 
         if not state.available:
-            plan.warnings.append("Required sensors unavailable.")
+            plan.add_warning("Required sensors unavailable.")
             return plan
 
         #
@@ -46,76 +52,17 @@ class OpenDoserEngine:
                 system.recipe.feed_program_id,
             )
 
-        #
-        # pH evaluation
-        #
-
-        if (
-            feed_program is not None
-            and state.ph is not None
-            and not system.recipe.ph_in_range(state.ph)
-        ):
-            plan.warnings.append(
-                f"pH {state.ph:.2f} "
-                f"(target {system.recipe.target_ph:.2f})"
-            )
-
-            delta = abs(system.recipe.target_ph - state.ph)
-
-            if state.ph < system.recipe.target_ph:
-                nutrient_id = feed_program.ph_up_nutrient_id
-            else:
-                nutrient_id = feed_program.ph_down_nutrient_id
-
-            if nutrient_id is not None:
-                nutrient = system.get_nutrient(nutrient_id)
-
-                if nutrient is not None:
-                    plan.add(
-                        nutrient=nutrient,
-                        volume_ml=nutrient.required_volume(
-                            delta,
-                            system.water_volume_liters,
-                        ),
-                    )
+        if feed_program is None:
+            plan.add_warning("No feed program selected.")
+            return plan
 
         #
-        # EC evaluation
+        # Delegate planning
         #
 
-        if (
-            feed_program is not None
-            and state.ec is not None
-            and not system.recipe.ec_in_range(state.ec)
-        ):
-            plan.warnings.append(
-                f"EC {state.ec:.2f} "
-                f"(target {system.recipe.target_ec:.2f})"
-            )
-
-            delta = system.recipe.target_ec - state.ec
-
-            #
-            # Only dose if EC is below target
-            #
-
-            if delta > 0:
-
-                for nutrient_id in feed_program.ec_nutrient_ids:
-
-                    nutrient = system.get_nutrient(
-                        nutrient_id,
-                    )
-
-                    if nutrient is None:
-                        continue
-
-                    plan.add(
-                        nutrient=nutrient,
-                        volume_ml=nutrient.required_volume(
-                            delta,
-                            system.water_volume_liters,
-                        ),
-                    )
-
-        return plan
+        return self._planner.create_plan(
+            system=system,
+            recipe=system.recipe,
+            feed_program=feed_program,
+            state=state,
+        )

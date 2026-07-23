@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .coordinator import OpenDoserCoordinator
+from .panel import async_setup_panel
+from .websocket_api import async_setup_websocket_api
 
 PLATFORMS = ["sensor"]
 
@@ -18,6 +23,40 @@ async def async_setup(
     """Set up OpenDoser."""
 
     hass.data.setdefault(DOMAIN, {})
+
+    #
+    # Register static frontend files
+    #
+
+    frontend_path = (
+        Path(__file__).parent / "frontend"
+    )
+
+    await hass.http.async_register_static_paths(
+        [
+            StaticPathConfig(
+                url_path=f"/{DOMAIN}/frontend",
+                path=str(frontend_path),
+                cache_headers=False,
+            ),
+        ]
+    )
+
+    #
+    # Register websocket API
+    #
+
+    async_setup_websocket_api(
+        hass,
+    )
+
+    #
+    # Register sidebar panel
+    #
+
+    await async_setup_panel(
+        hass,
+    )
 
     return True
 
@@ -32,6 +71,16 @@ async def async_setup_entry(
         hass,
         entry,
     )
+
+    #
+    # Load persistent configuration
+    #
+
+    await coordinator.async_initialize()
+
+    #
+    # Start coordinator
+    #
 
     await coordinator.async_config_entry_first_refresh()
 
@@ -57,6 +106,8 @@ async def async_unload_entry(
     )
 
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(
+            entry.entry_id,
+        )
 
     return unload_ok

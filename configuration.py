@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .model.feed_program import FeedProgram
 from .model.nutrient import Nutrient
+from .model.pump import Pump
 from .model.recipe import Recipe
 from .model.system import System
 
@@ -19,8 +20,23 @@ class Configuration:
 
         system = System(recipe=recipe)
 
+        #
+        # Hardware
+        #
+
+        for pump in cls.create_default_pumps():
+            system.add_pump(pump)
+
+        #
+        # Nutrients
+        #
+
         for nutrient in cls.create_default_nutrients():
             system.add_nutrient(nutrient)
+
+        #
+        # Feed programs
+        #
 
         for program in cls.create_default_feed_programs():
             system.add_feed_program(program)
@@ -36,6 +52,23 @@ class Configuration:
             name="Default Recipe",
             feed_program_id="default",
         )
+
+    @staticmethod
+    def create_default_pumps() -> list[Pump]:
+        """Create default pumps."""
+
+        return [
+            Pump(
+                id="pump_ph_down",
+                name="pH Down Pump",
+                entity_id="switch.ph_down_pump",
+            ),
+            Pump(
+                id="pump_ec",
+                name="EC Pump",
+                entity_id="switch.ec_pump",
+            ),
+        ]
 
     @staticmethod
     def create_default_nutrients() -> list[Nutrient]:

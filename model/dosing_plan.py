@@ -13,6 +13,8 @@ class DosingAction:
 
     volume_ml: float
 
+    runtime_seconds: float = 0.0
+
     reason: str = ""
 
 
@@ -28,6 +30,7 @@ class DosingPlan:
         self,
         pump_id: str,
         volume_ml: float,
+        runtime_seconds: float = 0.0,
         reason: str = "",
     ) -> None:
         """Add a dosing action."""
@@ -39,18 +42,40 @@ class DosingPlan:
             DosingAction(
                 pump_id=pump_id,
                 volume_ml=volume_ml,
+                runtime_seconds=runtime_seconds,
                 reason=reason,
             )
         )
+
+    def add_warning(
+        self,
+        message: str,
+    ) -> None:
+        """Add a warning."""
+
+        if message:
+            self.warnings.append(message)
 
     @property
     def empty(self) -> bool:
         """Return True if nothing has to be dosed."""
 
-        return len(self.actions) == 0
+        return not self.actions
 
     @property
     def total_volume_ml(self) -> float:
         """Return the total dosing volume."""
 
-        return sum(action.volume_ml for action in self.actions)
+        return sum(
+            action.volume_ml
+            for action in self.actions
+        )
+
+    @property
+    def total_runtime_seconds(self) -> float:
+        """Return the total runtime."""
+
+        return sum(
+            action.runtime_seconds
+            for action in self.actions
+        )

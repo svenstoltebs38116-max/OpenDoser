@@ -9,6 +9,10 @@ from dataclasses import dataclass, field
 class FeedProgram:
     """Defines how a recipe performs nutrient corrections."""
 
+    #
+    # Identity
+    #
+
     id: str
     name: str
 
@@ -33,3 +37,41 @@ class FeedProgram:
     enabled: bool = True
 
     description: str = ""
+
+    def to_dict(self) -> dict:
+        """Serialize the feed program."""
+
+        return {
+            "id": self.id,
+            "name": self.name,
+            "ph_up_nutrient_id": self.ph_up_nutrient_id,
+            "ph_down_nutrient_id": self.ph_down_nutrient_id,
+            "ec_nutrient_ids": list(self.ec_nutrient_ids),
+            "enabled": self.enabled,
+            "description": self.description,
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: dict,
+    ) -> FeedProgram:
+        """Deserialize a feed program."""
+
+        return cls(
+            id=data["id"],
+            name=data["name"],
+            ph_up_nutrient_id=data.get("ph_up_nutrient_id"),
+            ph_down_nutrient_id=data.get("ph_down_nutrient_id"),
+            ec_nutrient_ids=list(
+                data.get("ec_nutrient_ids", []),
+            ),
+            enabled=data.get(
+                "enabled",
+                True,
+            ),
+            description=data.get(
+                "description",
+                "",
+            ),
+        )
