@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from time import monotonic
+
 from .model.dosing_plan import DosingAction
 from .model.dosing_plan import DosingPlan
+from .model.execution_result import ExecutionResult
 
 
 class DosingExecutor:
@@ -30,25 +33,40 @@ class DosingExecutor:
     async def execute(
         self,
         plan: DosingPlan,
-    ) -> None:
+    ) -> ExecutionResult:
         """Execute a dosing plan."""
 
         if self._running:
             raise RuntimeError("Executor is already running.")
 
+        result = ExecutionResult()
+
         self._running = True
         self._cancel_requested = False
+
+        start_time = monotonic()
 
         try:
             for action in plan.actions:
                 if self._cancel_requested:
+                    result.cancelled = True
                     break
 
                 await self.execute_action(action)
+                result.actions_executed += 1
+
+            result.completed = not result.cancelled
+
+        except Exception as err:
+            result.error = str(err)
+            raise
 
         finally:
+            result.duration_seconds = monotonic() - start_time
             self._running = False
             self._cancel_requested = False
+
+        return result
 
     async def execute_action(
         self,
@@ -58,8 +76,7 @@ class DosingExecutor:
 
         #
         # Placeholder.
-        #
-        # Actual pump control will be implemented later.
+        # Hardware control will be implemented later.
         #
 
         return

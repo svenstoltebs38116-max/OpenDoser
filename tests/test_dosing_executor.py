@@ -9,6 +9,7 @@ import pytest
 from custom_components.opendoser.dosing_executor import DosingExecutor
 from custom_components.opendoser.model.dosing_plan import DosingAction
 from custom_components.opendoser.model.dosing_plan import DosingPlan
+from custom_components.opendoser.model.execution_result import ExecutionResult
 
 
 class RecordingExecutor(DosingExecutor):
@@ -67,13 +68,13 @@ class CancelExecutor(DosingExecutor):
         self,
         action: DosingAction,
     ) -> None:
-        """Execute one action and cancel afterwards."""
+        """Execute one action and request cancellation."""
         self.executed_actions.append(action)
         self.stop()
 
 
 def create_plan(count: int) -> DosingPlan:
-    """Create a dosing plan with a given number of actions."""
+    """Create a dosing plan."""
     plan = DosingPlan()
 
     for index in range(count):
@@ -101,7 +102,13 @@ async def test_execute_empty_plan() -> None:
     executor = RecordingExecutor()
     plan = DosingPlan()
 
-    await executor.execute(plan)
+    result = await executor.execute(plan)
+
+    assert isinstance(result, ExecutionResult)
+    assert result.completed is True
+    assert result.successful is True
+    assert result.actions_executed == 0
+    assert result.cancelled is False
 
     assert executor.running is False
     assert executor.executed_actions == []
@@ -113,7 +120,14 @@ async def test_execute_actions_in_order() -> None:
     executor = RecordingExecutor()
     plan = create_plan(3)
 
-    await executor.execute(plan)
+    result = await executor.execute(plan)
+
+    assert result.completed is True
+    assert result.successful is True
+    assert result.actions_executed == 3
+    assert result.cancelled is False
+    assert result.error is None
+    assert result.duration_seconds >= 0.0
 
     assert executor.executed_actions == plan.actions
 
@@ -124,8 +138,9 @@ async def test_running_true_during_execution() -> None:
     executor = RunningStateExecutor()
     plan = create_plan(1)
 
-    await executor.execute(plan)
+    result = await executor.execute(plan)
 
+    assert result.successful is True
     assert executor.running_during_execution is True
     assert executor.running is False
 
@@ -162,7 +177,12 @@ async def test_stop_cancels_remaining_actions() -> None:
     executor = CancelExecutor()
     plan = create_plan(5)
 
-    await executor.execute(plan)
+    result = await executor.execute(plan)
+
+    assert result.cancelled is True
+    assert result.completed is False
+    assert result.successful is False
+    assert result.actions_executed == 1
 
     assert len(executor.executed_actions) == 1
     assert executor.running is False
