@@ -11,12 +11,14 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .engine import OpenDoserEngine
 from .entity_manager import EntityManager
+from .model.execution_result import ExecutionResult
 from .model.system import System
 from .model.system_state import SystemState
 from .registry import RoleRegistry
 from .resources import ResourceManager
 from .roles import ROLE_DEFINITIONS, Role
 from .storage import SystemStorage
+from .switch_pump_driver import SwitchPumpDriver
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,7 +78,11 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         # Runtime
         #
 
-        self.engine = OpenDoserEngine()
+        self.driver = SwitchPumpDriver(hass)
+
+        self.engine = OpenDoserEngine(
+            self.driver,
+        )
 
         self.system_state = SystemState()
 
@@ -122,6 +128,27 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
             }
 
         return data
+
+    async def async_execute_plan(
+        self,
+    ) -> ExecutionResult:
+        """Execute the current dosing plan."""
+
+        if self.last_plan is None:
+            raise RuntimeError(
+                "No dosing plan available."
+            )
+
+        return await self.engine.execute(
+            self.last_plan,
+        )
+
+    def stop_execution(
+        self,
+    ) -> None:
+        """Stop the current execution."""
+
+        self.engine.stop()
 
     async def save_system(self) -> None:
         """Persist the current system."""
