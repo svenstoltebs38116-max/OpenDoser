@@ -1,0 +1,7 @@
+execute:
+  name: Execute dosing plan
+  description: Execute the currently calculated dosing plan.
+
+stop:
+  name: Stop dosing
+  description: Stop the currently running dosing plan.
