@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .model.feed_program import FeedProgram
+from .model.feed_program_nutrient import FeedProgramNutrient
 from .model.nutrient import Nutrient
 from .model.pump import Pump
 from .model.recipe import Recipe
@@ -101,6 +102,11 @@ class Configuration:
                 name="Default Feed Program",
                 ph_up_nutrient_id=None,
                 ph_down_nutrient_id="ph_down",
-                ec_nutrient_ids=["ec"],
+                ec_nutrients=[
+                    FeedProgramNutrient(
+                        nutrient_id="ec",
+                        ratio=1.0,
+                    ),
+                ],
             )
         ]

@@ -21,8 +21,6 @@ class Nutrient:
     #
     # Compatibility
     #
-    # Will be removed once the migration to FeedProgram is complete.
-    #
 
     role: NutrientRole = NutrientRole.CUSTOM
 
@@ -37,6 +35,20 @@ class Nutrient:
     # Dosing
     #
 
+    #
+    # EC or pH change produced by 1 ml of this nutrient
+    # in 1 liter of water.
+    #
+    # Example:
+    #
+    #   strength = 0.10
+    #
+    # means:
+    #
+    #   1 ml raises EC by 0.10 mS/cm
+    #   in 1 liter of water.
+    #
+
     strength: float = 0.0
 
     minimum_dose_ml: float = 0.5
@@ -44,40 +56,29 @@ class Nutrient:
 
     enabled: bool = True
 
-    def required_volume(
+    def clamp_volume(
         self,
-        delta: float,
-        water_volume_liters: float,
+        volume_ml: float,
     ) -> float:
-        """Return the required dose in ml."""
+        """Clamp a calculated dose to the configured limits."""
 
         if not self.enabled:
             return 0.0
 
-        if delta <= 0:
+        if volume_ml <= 0:
             return 0.0
 
-        if water_volume_liters <= 0:
-            return 0.0
-
-        if self.strength <= 0:
-            return 0.0
-
-        volume = (
-            delta * water_volume_liters
-        ) / self.strength
-
-        volume = max(
+        volume_ml = max(
             self.minimum_dose_ml,
-            volume,
+            volume_ml,
         )
 
-        volume = min(
-            volume,
+        volume_ml = min(
             self.maximum_dose_ml,
+            volume_ml,
         )
 
-        return volume
+        return volume_ml
 
     def to_dict(self) -> dict:
         """Serialize the nutrient."""
@@ -98,10 +99,13 @@ class Nutrient:
     def from_dict(
         cls,
         data: dict,
-    ) -> Nutrient:
+    ) -> "Nutrient":
         """Deserialize a nutrient."""
 
-        role = data.get("role", NutrientRole.CUSTOM.value)
+        role = data.get(
+            "role",
+            NutrientRole.CUSTOM.value,
+        )
 
         return cls(
             id=data["id"],

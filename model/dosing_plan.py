@@ -53,14 +53,20 @@ class DosingPlan:
     ) -> None:
         """Add a warning."""
 
-        if message:
+        if message and message not in self.warnings:
             self.warnings.append(message)
 
     @property
     def empty(self) -> bool:
         """Return True if nothing has to be dosed."""
 
-        return not self.actions
+        return len(self.actions) == 0
+
+    @property
+    def has_warnings(self) -> bool:
+        """Return True if warnings are present."""
+
+        return len(self.warnings) > 0
 
     @property
     def total_volume_ml(self) -> float:

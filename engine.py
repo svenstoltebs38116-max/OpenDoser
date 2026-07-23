@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .dosing_planner import DosingPlanner
 from .model.dosing_plan import DosingPlan
+from .model.feed_program import FeedProgram
 from .model.system import System
 from .model.system_state import SystemState
 
@@ -16,6 +17,39 @@ class OpenDoserEngine:
 
         self._planner = DosingPlanner()
 
+    def validate(
+        self,
+        system: System,
+        state: SystemState,
+    ) -> list[str]:
+        """Validate whether a dosing plan can be created."""
+
+        warnings: list[str] = []
+
+        if not system.recipe.enabled:
+            warnings.append("Recipe is disabled.")
+
+        if not state.available:
+            warnings.append("Required sensors unavailable.")
+
+        if system.recipe.feed_program_id is None:
+            warnings.append("No feed program selected.")
+
+        return warnings
+
+    def get_feed_program(
+        self,
+        system: System,
+    ) -> FeedProgram | None:
+        """Return the configured feed program."""
+
+        if system.recipe.feed_program_id is None:
+            return None
+
+        return system.get_feed_program(
+            system.recipe.feed_program_id,
+        )
+
     def calculate(
         self,
         system: System,
@@ -25,40 +59,17 @@ class OpenDoserEngine:
 
         plan = DosingPlan()
 
-        #
-        # Recipe enabled?
-        #
+        for warning in self.validate(system, state):
+            plan.add_warning(warning)
 
-        if not system.recipe.enabled:
-            plan.add_warning("Recipe is disabled.")
+        if plan.warnings:
             return plan
 
-        #
-        # Required sensors available?
-        #
-
-        if not state.available:
-            plan.add_warning("Required sensors unavailable.")
-            return plan
-
-        #
-        # Feed program
-        #
-
-        feed_program = None
-
-        if system.recipe.feed_program_id is not None:
-            feed_program = system.get_feed_program(
-                system.recipe.feed_program_id,
-            )
+        feed_program = self.get_feed_program(system)
 
         if feed_program is None:
-            plan.add_warning("No feed program selected.")
+            plan.add_warning("Feed program not found.")
             return plan
-
-        #
-        # Delegate planning
-        #
 
         return self._planner.create_plan(
             system=system,
