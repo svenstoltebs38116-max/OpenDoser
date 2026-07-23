@@ -10,21 +10,25 @@ class FeedProgramNutrient:
     """Defines one nutrient used for EC correction."""
 
     #
-    # Nutrient
+    # Nutrient identifier.
     #
 
     nutrient_id: str
 
     #
-    # Relative mixing ratio.
+    # Relative contribution to the desired EC increase.
     #
-    # Examples:
+    # The ratio does NOT represent the dosing volume.
     #
-    #   1 : 1
-    #   2 : 1
-    #   3 : 2 : 1
+    # Example:
     #
-    # Only the proportion between nutrients matters.
+    #   Grow A (ratio=2)
+    #   Grow B (ratio=1)
+    #
+    # means Grow A contributes two parts of the target EC increase,
+    # while Grow B contributes one part.
+    #
+    # The actual dosing volume depends on the nutrient strength.
     #
 
     ratio: float = 1.0

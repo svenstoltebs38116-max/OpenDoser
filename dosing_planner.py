@@ -77,12 +77,35 @@ class DosingPlanner:
         if nutrient_id is None:
             return
 
-        self._add_action(
-            plan=plan,
-            system=system,
-            nutrient_id=nutrient_id,
+        nutrient = system.get_nutrient(
+            nutrient_id,
+        )
+
+        if nutrient is None:
+            return
+
+        pump = system.get_pump(
+            nutrient.pump_id,
+        )
+
+        if pump is None:
+            return
+
+        volume = self._calculator.calculate_ph_volume(
+            nutrient=nutrient,
             delta=delta,
-            ratio=1.0,
+            water_volume_liters=system.water_volume_liters,
+        )
+
+        if volume <= 0:
+            return
+
+        plan.add(
+            pump_id=pump.id,
+            volume_ml=volume,
+            runtime_seconds=pump.runtime_for(
+                volume,
+            ),
             reason="pH correction",
         )
 
@@ -114,24 +137,34 @@ class DosingPlanner:
         if not nutrients:
             return
 
-        total_ratio = sum(
-            entry.ratio
-            for entry in nutrients
+        volumes = self._calculator.calculate_ec_volumes(
+            system=system,
+            nutrients=nutrients,
+            delta=delta,
         )
 
-        if total_ratio <= 0:
-            return
+        for nutrient_id, volume in volumes.items():
 
-        for entry in nutrients:
+            nutrient = system.get_nutrient(
+                nutrient_id,
+            )
 
-            ratio = entry.ratio / total_ratio
+            if nutrient is None:
+                continue
 
-            self._add_action(
-                plan=plan,
-                system=system,
-                nutrient_id=entry.nutrient_id,
-                delta=delta,
-                ratio=ratio,
+            pump = system.get_pump(
+                nutrient.pump_id,
+            )
+
+            if pump is None:
+                continue
+
+            plan.add(
+                pump_id=pump.id,
+                volume_ml=volume,
+                runtime_seconds=pump.runtime_for(
+                    volume,
+                ),
                 reason="EC correction",
             )
 
@@ -152,47 +185,3 @@ class DosingPlanner:
         )
 
         return nutrients
-
-    def _add_action(
-        self,
-        plan: DosingPlan,
-        system: System,
-        nutrient_id: str,
-        delta: float,
-        reason: str,
-        ratio: float = 1.0,
-    ) -> None:
-        """Add a dosing action."""
-
-        nutrient = system.get_nutrient(
-            nutrient_id,
-        )
-
-        if nutrient is None:
-            return
-
-        pump = system.get_pump(
-            nutrient.pump_id,
-        )
-
-        if pump is None:
-            return
-
-        volume = self._calculator.calculate_volume(
-            nutrient=nutrient,
-            delta=delta,
-            water_volume_liters=system.water_volume_liters,
-            ratio=ratio,
-        )
-
-        if volume <= 0:
-            return
-
-        plan.add(
-            pump_id=pump.id,
-            volume_ml=volume,
-            runtime_seconds=pump.runtime_for(
-                volume,
-            ),
-            reason=reason,
-        )
