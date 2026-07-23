@@ -78,7 +78,10 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         # Runtime
         #
 
-        self.driver = SwitchPumpDriver(hass)
+        self.driver = SwitchPumpDriver(
+            hass,
+            self.entity_manager,
+        )
 
         self.engine = OpenDoserEngine(
             self.driver,
