@@ -25,10 +25,6 @@ async def async_setup(
 
     hass.data.setdefault(DOMAIN, {})
 
-    #
-    # Register static frontend files
-    #
-
     frontend_path = (
         Path(__file__).parent / "frontend"
     )
@@ -43,23 +39,20 @@ async def async_setup(
         ]
     )
 
-    #
-    # Register websocket API
-    #
+    async_setup_websocket_api(hass)
 
-    async_setup_websocket_api(
-        hass,
-    )
-
-    #
-    # Register sidebar panel
-    #
-
-    await async_setup_panel(
-        hass,
-    )
+    await async_setup_panel(hass)
 
     return True
+
+
+async def _async_update_listener(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+) -> None:
+    """Reload integration when options change."""
+
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_setup_entry(
@@ -73,24 +66,18 @@ async def async_setup_entry(
         entry,
     )
 
-    #
-    # Load persistent configuration
-    #
+    entry.async_on_unload(
+        entry.add_update_listener(
+            _async_update_listener,
+        )
+    )
 
     await coordinator.async_initialize()
-
-    #
-    # Register services
-    #
 
     await async_register_services(
         hass,
         coordinator,
     )
-
-    #
-    # Start coordinator
-    #
 
     await coordinator.async_config_entry_first_refresh()
 
@@ -118,6 +105,7 @@ async def async_unload_entry(
     if unload_ok:
         hass.data[DOMAIN].pop(
             entry.entry_id,
+            None,
         )
 
     return unload_ok
