@@ -86,11 +86,13 @@ class DosingPlanner:
         if pump is None:
             return
 
-        volume = self._calculator.calculate_ph_volume(
+        result = self._calculator.calculate_ph_volume(
             nutrient=nutrient,
             delta=delta,
             water_volume_liters=system.water_volume_liters,
         )
+
+        volume = result.volume_ml
 
         if volume <= 0:
             return
@@ -143,7 +145,7 @@ class DosingPlanner:
             water_volume_liters=system.water_volume_liters,
         )
 
-        for nutrient_id, volume in volumes.items():
+        for nutrient_id, result in volumes.items():
 
             nutrient = system.get_nutrient(nutrient_id)
 
@@ -158,6 +160,11 @@ class DosingPlanner:
             role = self._ec_role_for_pump(pump.id)
 
             if role is None:
+                continue
+
+            volume = result.volume_ml
+
+            if volume <= 0:
                 continue
 
             plan.add(
