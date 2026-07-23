@@ -46,8 +46,16 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
 
         self.registry = RoleRegistry()
 
+        #
+        # Role assignments are stored in the options flow.
+        # Fall back to entry.data for backwards compatibility.
+        #
+
+        assignments = dict(entry.data)
+        assignments.update(entry.options)
+
         for role in ROLE_DEFINITIONS:
-            entity_id = entry.data.get(role.value)
+            entity_id = assignments.get(role.value)
 
             if entity_id:
                 self.registry.set(role, entity_id)
