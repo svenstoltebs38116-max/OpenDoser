@@ -102,10 +102,21 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         if self.system is None:
             raise RuntimeError("Coordinator not initialized")
 
+        ph = self.get_role_value(Role.PH_SENSOR)
+        ec = self.get_role_value(Role.EC_SENSOR)
+        temperature = self.get_role_value(Role.TEMPERATURE_SENSOR)
+
+        _LOGGER.info(
+            "Sensor values: ph=%r ec=%r temperature=%r",
+            ph,
+            ec,
+            temperature,
+        )
+
         self.system_state = SystemState(
-            ph=self.get_role_value(Role.PH_SENSOR),
-            ec=self.get_role_value(Role.EC_SENSOR),
-            temperature=self.get_role_value(Role.TEMPERATURE_SENSOR),
+            ph=ph,
+            ec=ec,
+            temperature=temperature,
             tds=None,
             salinity=None,
         )
