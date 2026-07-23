@@ -6,6 +6,7 @@ from .dosing_calculator import DosingCalculator
 from .model.dosing_plan import DosingPlan
 from .model.feed_program import FeedProgram
 from .model.feed_program_nutrient import FeedProgramNutrient
+from .model.nutrient_dose import NutrientDose
 from .model.recipe import Recipe
 from .model.system import System
 from .model.system_state import SystemState
@@ -130,17 +131,18 @@ class DosingPlanner:
         if delta <= 0:
             return
 
-        nutrients = self._enabled_ec_nutrients(
+        nutrient_doses = self._create_nutrient_doses(
+            system,
             feed_program,
         )
 
-        if not nutrients:
+        if not nutrient_doses:
             return
 
         volumes = self._calculator.calculate_ec_volumes(
-            system=system,
-            nutrients=nutrients,
+            nutrient_doses=nutrient_doses,
             delta=delta,
+            water_volume_liters=system.water_volume_liters,
         )
 
         for nutrient_id, volume in volumes.items():
@@ -168,20 +170,38 @@ class DosingPlanner:
                 reason="EC correction",
             )
 
-    def _enabled_ec_nutrients(
+    def _create_nutrient_doses(
         self,
+        system: System,
         feed_program: FeedProgram,
-    ) -> list[FeedProgramNutrient]:
-        """Return enabled EC nutrients."""
+    ) -> list[NutrientDose]:
+        """Create nutrient doses from the feed program."""
 
-        nutrients = [
-            entry
-            for entry in feed_program.ec_nutrients
-            if entry.valid
-        ]
+        doses: list[NutrientDose] = []
 
-        nutrients.sort(
+        nutrients = sorted(
+            (
+                entry
+                for entry in feed_program.ec_nutrients
+                if entry.valid
+            ),
             key=lambda entry: entry.priority,
         )
 
-        return nutrients
+        for entry in nutrients:
+
+            nutrient = system.get_nutrient(
+                entry.nutrient_id,
+            )
+
+            if nutrient is None:
+                continue
+
+            doses.append(
+                NutrientDose(
+                    nutrient=nutrient,
+                    ratio=entry.ratio,
+                )
+            )
+
+        return doses

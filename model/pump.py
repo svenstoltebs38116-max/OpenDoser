@@ -35,14 +35,6 @@ class Pump:
     last_calibration: str | None = None
 
     #
-    # Limits
-    #
-
-    minimum_dose_ml: float = 0.5
-
-    maximum_dose_ml: float = 100.0
-
-    #
     # General
     #
 
@@ -69,21 +61,6 @@ class Pump:
             return 0.0
 
         return volume_ml / flow
-
-    def can_dose(
-        self,
-        volume_ml: float,
-    ) -> bool:
-        """Return True if the requested dose is valid."""
-
-        if not self.enabled:
-            return False
-
-        return (
-            self.minimum_dose_ml
-            <= volume_ml
-            <= self.maximum_dose_ml
-        )
 
     def update_calibration(
         self,
@@ -117,8 +94,6 @@ class Pump:
             "calibration_factor": self.calibration_factor,
             "calibrated": self.calibrated,
             "last_calibration": self.last_calibration,
-            "minimum_dose_ml": self.minimum_dose_ml,
-            "maximum_dose_ml": self.maximum_dose_ml,
             "enabled": self.enabled,
         }
 
@@ -137,7 +112,5 @@ class Pump:
             calibration_factor=data.get("calibration_factor", 1.0),
             calibrated=data.get("calibrated", False),
             last_calibration=data.get("last_calibration"),
-            minimum_dose_ml=data.get("minimum_dose_ml", 0.5),
-            maximum_dose_ml=data.get("maximum_dose_ml", 100.0),
             enabled=data.get("enabled", True),
         )

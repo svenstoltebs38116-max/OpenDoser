@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from .model.feed_program_nutrient import FeedProgramNutrient
+from .model.calculation_result import CalculationResult
 from .model.nutrient import Nutrient
-from .model.system import System
+from .model.nutrient_dose import NutrientDose
 
 
 class DosingCalculator:
@@ -15,7 +15,7 @@ class DosingCalculator:
         nutrient: Nutrient,
         delta: float,
         water_volume_liters: float,
-    ) -> float:
+    ) -> CalculationResult:
         """Calculate the required pH dosing volume."""
 
         return self._calculate_volume(
@@ -27,44 +27,46 @@ class DosingCalculator:
 
     def calculate_ec_volumes(
         self,
-        system: System,
-        nutrients: list[FeedProgramNutrient],
+        nutrient_doses: list[NutrientDose],
         delta: float,
-    ) -> dict[str, float]:
-        """Calculate EC dosing volumes for all nutrients."""
+        water_volume_liters: float,
+    ) -> dict[str, CalculationResult]:
+        """Calculate EC dosing volumes."""
 
-        volumes: dict[str, float] = {}
+        results: dict[str, CalculationResult] = {}
+
+        valid_doses = [
+            dose
+            for dose in nutrient_doses
+            if dose.valid
+        ]
+
+        if not valid_doses:
+            return results
 
         total_ratio = sum(
-            entry.ratio
-            for entry in nutrients
+            dose.ratio
+            for dose in valid_doses
         )
 
         if total_ratio <= 0:
-            return volumes
+            return results
 
-        for entry in nutrients:
+        for dose in valid_doses:
 
-            nutrient = system.get_nutrient(
-                entry.nutrient_id,
-            )
-
-            if nutrient is None:
-                continue
-
-            volume = self._calculate_volume(
-                nutrient=nutrient,
+            result = self._calculate_volume(
+                nutrient=dose.nutrient,
                 delta=delta,
-                water_volume_liters=system.water_volume_liters,
-                ratio=entry.ratio / total_ratio,
+                water_volume_liters=water_volume_liters,
+                ratio=dose.ratio / total_ratio,
             )
 
-            if volume <= 0:
+            if result.volume_ml <= 0:
                 continue
 
-            volumes[entry.nutrient_id] = volume
+            results[dose.nutrient.id] = result
 
-        return volumes
+        return results
 
     def _calculate_volume(
         self,
@@ -72,20 +74,33 @@ class DosingCalculator:
         delta: float,
         water_volume_liters: float,
         ratio: float,
-    ) -> float:
+    ) -> CalculationResult:
         """Calculate one dosing volume."""
 
+        result = CalculationResult(
+            volume_ml=0.0,
+        )
+
         if not nutrient.enabled:
-            return 0.0
+            result.add_warning(
+                "Nutrient is disabled."
+            )
+            return result
 
         if nutrient.strength <= 0:
-            return 0.0
+            result.add_warning(
+                "Invalid nutrient strength."
+            )
+            return result
 
         if delta <= 0:
-            return 0.0
+            return result
 
         if water_volume_liters <= 0:
-            return 0.0
+            result.add_warning(
+                "Invalid water volume."
+            )
+            return result
 
         volume = (
             delta
@@ -95,6 +110,26 @@ class DosingCalculator:
 
         volume *= ratio
 
-        return nutrient.clamp_volume(
-            volume,
-        )
+        if volume < nutrient.minimum_dose_ml:
+
+            result.volume_ml = nutrient.minimum_dose_ml
+
+            result.add_warning(
+                "Minimum dose applied."
+            )
+
+            return result
+
+        if volume > nutrient.maximum_dose_ml:
+
+            result.volume_ml = nutrient.maximum_dose_ml
+
+            result.add_warning(
+                "Maximum dose applied."
+            )
+
+            return result
+
+        result.volume_ml = volume
+
+        return result
