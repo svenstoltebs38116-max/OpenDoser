@@ -40,19 +40,15 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=5),
         )
 
-        #
-        # Registry
-        #
+        _LOGGER.warning("ENTRY.DATA = %s", dict(entry.data))
+        _LOGGER.warning("ENTRY.OPTIONS = %s", dict(entry.options))
 
         self.registry = RoleRegistry()
 
-        #
-        # Role assignments are stored in the options flow.
-        # Fall back to entry.data for backwards compatibility.
-        #
-
         assignments = dict(entry.data)
         assignments.update(entry.options)
+
+        _LOGGER.warning("ASSIGNMENTS = %s", assignments)
 
         for role in ROLE_DEFINITIONS:
             entity_id = assignments.get(role.value)
@@ -60,9 +56,13 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
             if entity_id:
                 self.registry.set(role, entity_id)
 
-        #
-        # Home Assistant adapters
-        #
+        _LOGGER.warning(
+            "REGISTERED ROLES = %s",
+            {
+                role.value: self.registry.get(role)
+                for role in ROLE_DEFINITIONS
+            },
+        )
 
         self.entity_manager = EntityManager(
             hass,
@@ -74,17 +74,9 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
             self.entity_manager,
         )
 
-        #
-        # Storage
-        #
-
         self.storage = SystemStorage(hass)
 
         self.system: System | None = None
-
-        #
-        # Runtime
-        #
 
         self.driver = SwitchPumpDriver(
             hass,
@@ -96,7 +88,6 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         )
 
         self.system_state = SystemState()
-
         self.last_plan = None
 
     async def async_initialize(self) -> None:
@@ -162,17 +153,11 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         """Execute the current dosing plan."""
 
         if self.last_plan is None:
-            raise RuntimeError(
-                "No dosing plan available."
-            )
+            raise RuntimeError("No dosing plan available.")
 
-        return await self.engine.execute(
-            self.last_plan,
-        )
+        return await self.engine.execute(self.last_plan)
 
-    def stop_execution(
-        self,
-    ) -> None:
+    def stop_execution(self) -> None:
         """Stop the current execution."""
 
         self.engine.stop()
@@ -183,26 +168,17 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         if self.system is not None:
             await self.storage.save(self.system)
 
-    def resource(
-        self,
-        role: Role,
-    ):
+    def resource(self, role: Role):
         """Return resource."""
 
         return self.resources[role]
 
-    def get_role_state(
-        self,
-        role: Role,
-    ):
+    def get_role_state(self, role: Role):
         """Return Home Assistant state."""
 
         return self.entity_manager.get_state(role)
 
-    def get_role_value(
-        self,
-        role: Role,
-    ):
+    def get_role_value(self, role: Role):
         """Return numeric value if available."""
 
         resource = self.resources[role]
