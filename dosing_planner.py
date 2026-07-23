@@ -5,11 +5,11 @@ from __future__ import annotations
 from .dosing_calculator import DosingCalculator
 from .model.dosing_plan import DosingPlan
 from .model.feed_program import FeedProgram
-from .model.feed_program_nutrient import FeedProgramNutrient
 from .model.nutrient_dose import NutrientDose
 from .model.recipe import Recipe
 from .model.system import System
 from .model.system_state import SystemState
+from .roles import Role
 
 
 class DosingPlanner:
@@ -65,9 +65,7 @@ class DosingPlanner:
         ):
             return
 
-        delta = abs(
-            recipe.target_ph - state.ph
-        )
+        delta = abs(recipe.target_ph - state.ph)
 
         nutrient_id = (
             feed_program.ph_up_nutrient_id
@@ -78,16 +76,12 @@ class DosingPlanner:
         if nutrient_id is None:
             return
 
-        nutrient = system.get_nutrient(
-            nutrient_id,
-        )
+        nutrient = system.get_nutrient(nutrient_id)
 
         if nutrient is None:
             return
 
-        pump = system.get_pump(
-            nutrient.pump_id,
-        )
+        pump = system.get_pump(nutrient.pump_id)
 
         if pump is None:
             return
@@ -101,12 +95,16 @@ class DosingPlanner:
         if volume <= 0:
             return
 
+        role = (
+            Role.PH_UP_PUMP
+            if state.ph < recipe.target_ph
+            else Role.PH_DOWN_PUMP
+        )
+
         plan.add(
-            pump_id=pump.id,
+            role=role,
             volume_ml=volume,
-            runtime_seconds=pump.runtime_for(
-                volume,
-            ),
+            runtime_seconds=pump.runtime_for(volume),
             reason="pH correction",
         )
 
@@ -147,26 +145,25 @@ class DosingPlanner:
 
         for nutrient_id, volume in volumes.items():
 
-            nutrient = system.get_nutrient(
-                nutrient_id,
-            )
+            nutrient = system.get_nutrient(nutrient_id)
 
             if nutrient is None:
                 continue
 
-            pump = system.get_pump(
-                nutrient.pump_id,
-            )
+            pump = system.get_pump(nutrient.pump_id)
 
             if pump is None:
                 continue
 
+            role = self._ec_role_for_pump(pump.id)
+
+            if role is None:
+                continue
+
             plan.add(
-                pump_id=pump.id,
+                role=role,
                 volume_ml=volume,
-                runtime_seconds=pump.runtime_for(
-                    volume,
-                ),
+                runtime_seconds=pump.runtime_for(volume),
                 reason="EC correction",
             )
 
@@ -205,3 +202,16 @@ class DosingPlanner:
             )
 
         return doses
+
+    @staticmethod
+    def _ec_role_for_pump(
+        pump_id: str,
+    ) -> Role | None:
+        """Map an EC pump ID to its logical role."""
+
+        mapping = {
+            "ec_a": Role.EC_A_PUMP,
+            "ec_b": Role.EC_B_PUMP,
+        }
+
+        return mapping.get(pump_id)
