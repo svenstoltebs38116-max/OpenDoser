@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 from .coordinator import OpenDoserCoordinator
 from .panel import async_setup_panel
+from .services import async_register_services
 from .websocket_api import async_setup_websocket_api
 
 PLATFORMS = ["sensor"]
@@ -77,6 +78,15 @@ async def async_setup_entry(
     #
 
     await coordinator.async_initialize()
+
+    #
+    # Register services
+    #
+
+    await async_register_services(
+        hass,
+        coordinator,
+    )
 
     #
     # Start coordinator
