@@ -1,6 +1,6 @@
-import BasePage from "./base_page.js";
+import CrudPage from "./crud_page.js";
 
-export default class TanksPage extends BasePage {
+export default class TanksPage extends CrudPage {
 
     get pageId() {
         return "tanks";
@@ -10,33 +10,12 @@ export default class TanksPage extends BasePage {
         return "Tanks";
     }
 
-    get toolbarActions() {
+    get objectType() {
+        return "tank";
+    }
+
+    get columns() {
         return [
-            {
-                icon: "mdi:plus",
-                label: "Add Tank",
-                action: () => this.openCreateDialog(),
-            },
-        ];
-    }
-
-    async renderPage() {
-
-        return `
-            <od-card title="Tanks">
-
-                <od-table id="table"></od-table>
-
-            </od-card>
-        `;
-
-    }
-
-    async pageRendered() {
-
-        const table = this.shadowRoot.getElementById("table");
-
-        table.columns = [
             {
                 key: "id",
                 label: "ID",
@@ -46,125 +25,47 @@ export default class TanksPage extends BasePage {
                 label: "Name",
             },
             {
-                key: "volume",
-                label: "Volume (L)",
+                key: "capacity",
+                label: "Volumen (ml)",
             },
             {
-                key: "actions",
-                label: "",
+                key: "current_level",
+                label: "Füllstand (ml)",
+            },
+            {
+                key: "enabled",
+                label: "Aktiv",
             },
         ];
-
-        table.rows = (this.app.system?.tanks ?? []).map((tank) => ({
-
-            ...tank,
-
-            actions: [
-                {
-                    icon: "mdi:pencil",
-                    title: "Edit",
-                    action: () => this.openEditDialog(tank),
-                },
-                {
-                    icon: "mdi:delete",
-                    title: "Delete",
-                    action: () => this.deleteTank(tank),
-                },
-            ],
-
-        }));
-
     }
 
-    openCreateDialog() {
-
-        this.openTankDialog();
-
-    }
-
-    openEditDialog(tank) {
-
-        this.openTankDialog(tank);
-
-    }
-
-    openTankDialog(tank = null) {
-
-        const form = document.createElement("od-form");
-
-        form.fields = [
-            {
-                id: "id",
-                label: "ID",
-                value: tank?.id ?? "",
-            },
+    get fields() {
+        return [
             {
                 id: "name",
                 label: "Name",
-                value: tank?.name ?? "",
+                type: "text",
+                required: true,
             },
             {
-                id: "volume",
-                label: "Volume (L)",
+                id: "capacity",
+                label: "Volumen (ml)",
                 type: "number",
-                value: tank?.volume ?? 0,
+                required: true,
+            },
+            {
+                id: "current_level",
+                label: "Aktueller Füllstand (ml)",
+                type: "number",
+                required: true,
+            },
+            {
+                id: "enabled",
+                label: "Aktiv",
+                type: "checkbox",
+                value: true,
             },
         ];
-
-        this.dialog.open({
-
-            title: tank ? "Edit Tank" : "New Tank",
-
-            content: form,
-
-            actions: [
-                {
-                    label: "Cancel",
-                },
-                {
-                    label: "Save",
-                    primary: true,
-
-                    action: async () => {
-
-                        if (tank) {
-
-                            await this.app.update(
-                                "tank",
-                                form.values,
-                            );
-
-                        } else {
-
-                            await this.app.create(
-                                "tank",
-                                form.values,
-                            );
-
-                        }
-
-                        this.refresh();
-
-                    },
-                },
-            ],
-        });
-
-    }
-
-    async deleteTank(tank) {
-
-        if (!confirm(`Delete "${tank.name}"?`)) {
-            return;
-        }
-
-        await this.app.delete(
-            "tank",
-            tank.id,
-        );
-
-        this.refresh();
-
     }
 
 }

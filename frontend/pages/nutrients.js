@@ -1,42 +1,21 @@
-import BasePage from "./base_page.js";
+import CrudPage from "./crud_page.js";
 
-export default class NutrientsPage extends BasePage {
+export default class NutrientsPage extends CrudPage {
 
     get pageId() {
         return "nutrients";
     }
 
     get pageTitle() {
-        return "Nutrients";
+        return "Nährstoffe";
     }
 
-    get toolbarActions() {
+    get objectType() {
+        return "nutrient";
+    }
+
+    get columns() {
         return [
-            {
-                icon: "mdi:plus",
-                label: "Add Nutrient",
-                action: () => this.openCreateDialog(),
-            },
-        ];
-    }
-
-    async renderPage() {
-
-        return `
-            <od-card title="Nutrients">
-
-                <od-table id="table"></od-table>
-
-            </od-card>
-        `;
-
-    }
-
-    async pageRendered() {
-
-        const table = this.shadowRoot.getElementById("table");
-
-        table.columns = [
             {
                 key: "id",
                 label: "ID",
@@ -46,117 +25,42 @@ export default class NutrientsPage extends BasePage {
                 label: "Name",
             },
             {
-                key: "actions",
-                label: "",
+                key: "tank_id",
+                label: "Tank",
+            },
+            {
+                key: "enabled",
+                label: "Aktiv",
             },
         ];
-
-        table.rows = (this.app.system?.nutrients ?? []).map((nutrient) => ({
-
-            ...nutrient,
-
-            actions: [
-                {
-                    icon: "mdi:pencil",
-                    title: "Edit",
-                    action: () => this.openEditDialog(nutrient),
-                },
-                {
-                    icon: "mdi:delete",
-                    title: "Delete",
-                    action: () => this.deleteNutrient(nutrient),
-                },
-            ],
-
-        }));
-
     }
 
-    openCreateDialog() {
+    get fields() {
 
-        this.openNutrientDialog();
-
-    }
-
-    openEditDialog(nutrient) {
-
-        this.openNutrientDialog(nutrient);
-
-    }
-
-    openNutrientDialog(nutrient = null) {
-
-        const form = document.createElement("od-form");
-
-        form.fields = [
-            {
-                id: "id",
-                label: "ID",
-                value: nutrient?.id ?? "",
-            },
+        return [
             {
                 id: "name",
                 label: "Name",
-                value: nutrient?.name ?? "",
+                type: "text",
+                required: true,
+            },
+            {
+                id: "tank_id",
+                label: "Tank",
+                type: "select",
+                options: (this.app.system?.tanks ?? []).map(tank => ({
+                    value: tank.id,
+                    label: tank.name,
+                })),
+                required: true,
+            },
+            {
+                id: "enabled",
+                label: "Aktiv",
+                type: "checkbox",
+                value: true,
             },
         ];
-
-        this.dialog.open({
-
-            title: nutrient ? "Edit Nutrient" : "New Nutrient",
-
-            content: form,
-
-            actions: [
-                {
-                    label: "Cancel",
-                },
-                {
-                    label: "Save",
-
-                    primary: true,
-
-                    action: async () => {
-
-                        if (nutrient) {
-
-                            await this.app.update(
-                                "nutrient",
-                                form.values,
-                            );
-
-                        } else {
-
-                            await this.app.create(
-                                "nutrient",
-                                form.values,
-                            );
-
-                        }
-
-                        this.refresh();
-
-                    },
-
-                },
-            ],
-
-        });
-
-    }
-
-    async deleteNutrient(nutrient) {
-
-        if (!confirm(`Delete "${nutrient.name}"?`)) {
-            return;
-        }
-
-        await this.app.delete(
-            "nutrient",
-            nutrient.id,
-        );
-
-        this.refresh();
 
     }
 

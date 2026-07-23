@@ -1,6 +1,6 @@
-import BasePage from "./base_page.js";
+import CrudPage from "./crud_page.js";
 
-export default class PumpsPage extends BasePage {
+export default class PumpsPage extends CrudPage {
 
     get pageId() {
         return "pumps";
@@ -10,30 +10,12 @@ export default class PumpsPage extends BasePage {
         return "Pumpen";
     }
 
-    get toolbarActions() {
+    get objectType() {
+        return "pump";
+    }
+
+    get columns() {
         return [
-            {
-                icon: "mdi:plus",
-                label: "Neu",
-                action: () => this.createPump(),
-            },
-        ];
-    }
-
-    async renderPage() {
-
-        const pumps = this.app.system?.pumps ?? [];
-
-        return `
-            <od-table id="table"></od-table>
-        `;
-    }
-
-    async pageRendered() {
-
-        const table = this.shadowRoot.getElementById("table");
-
-        table.columns = [
             {
                 key: "id",
                 label: "ID",
@@ -50,38 +32,40 @@ export default class PumpsPage extends BasePage {
                 key: "flow_rate",
                 label: "ml/min",
             },
+            {
+                key: "enabled",
+                label: "Aktiv",
+            },
         ];
-
-        table.rows = this.app.system?.pumps ?? [];
-
-        table.onEdit = (row) => this.editPump(row);
-        table.onDelete = (row) => this.deletePump(row);
-
     }
 
-    async createPump() {
-
-        // Dialog folgt im nächsten Schritt.
-    }
-
-    async editPump(pump) {
-
-        // Dialog folgt im nächsten Schritt.
-    }
-
-    async deletePump(pump) {
-
-        if (!confirm(`Pumpe "${pump.name}" löschen?`)) {
-            return;
-        }
-
-        await this.app.delete(
-            "pump",
-            pump.id,
-        );
-
-        await this.refresh();
-
+    get fields() {
+        return [
+            {
+                id: "name",
+                label: "Name",
+                type: "text",
+                required: true,
+            },
+            {
+                id: "gpio_pin",
+                label: "GPIO Pin",
+                type: "number",
+                required: true,
+            },
+            {
+                id: "flow_rate",
+                label: "Förderleistung (ml/min)",
+                type: "number",
+                required: true,
+            },
+            {
+                id: "enabled",
+                label: "Aktiv",
+                type: "checkbox",
+                value: true,
+            },
+        ];
     }
 
 }

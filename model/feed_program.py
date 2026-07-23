@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .feed_program_nutrient import FeedProgramNutrient
+
 
 @dataclass(slots=True)
 class FeedProgram:
@@ -28,7 +30,9 @@ class FeedProgram:
     # EC correction
     #
 
-    ec_nutrient_ids: list[str] = field(default_factory=list)
+    ec_nutrients: list[FeedProgramNutrient] = field(
+        default_factory=list,
+    )
 
     #
     # General
@@ -46,7 +50,10 @@ class FeedProgram:
             "name": self.name,
             "ph_up_nutrient_id": self.ph_up_nutrient_id,
             "ph_down_nutrient_id": self.ph_down_nutrient_id,
-            "ec_nutrient_ids": list(self.ec_nutrient_ids),
+            "ec_nutrients": [
+                nutrient.to_dict()
+                for nutrient in self.ec_nutrients
+            ],
             "enabled": self.enabled,
             "description": self.description,
         }
@@ -55,17 +62,25 @@ class FeedProgram:
     def from_dict(
         cls,
         data: dict,
-    ) -> FeedProgram:
+    ) -> "FeedProgram":
         """Deserialize a feed program."""
 
         return cls(
             id=data["id"],
             name=data["name"],
-            ph_up_nutrient_id=data.get("ph_up_nutrient_id"),
-            ph_down_nutrient_id=data.get("ph_down_nutrient_id"),
-            ec_nutrient_ids=list(
-                data.get("ec_nutrient_ids", []),
+            ph_up_nutrient_id=data.get(
+                "ph_up_nutrient_id",
             ),
+            ph_down_nutrient_id=data.get(
+                "ph_down_nutrient_id",
+            ),
+            ec_nutrients=[
+                FeedProgramNutrient.from_dict(item)
+                for item in data.get(
+                    "ec_nutrients",
+                    [],
+                )
+            ],
             enabled=data.get(
                 "enabled",
                 True,
