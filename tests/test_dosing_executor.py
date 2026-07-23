@@ -10,6 +10,25 @@ from custom_components.opendoser.dosing_executor import DosingExecutor
 from custom_components.opendoser.model.dosing_plan import DosingAction
 from custom_components.opendoser.model.dosing_plan import DosingPlan
 from custom_components.opendoser.model.execution_result import ExecutionResult
+from custom_components.opendoser.pump_driver import PumpDriver
+from custom_components.opendoser.roles import Role
+
+
+class DummyPumpDriver(PumpDriver):
+    """Pump driver used by the unit tests."""
+
+    def __init__(self) -> None:
+        """Initialize the driver."""
+
+        self.executed_actions: list[DosingAction] = []
+
+    async def execute_action(
+        self,
+        action: DosingAction,
+    ) -> None:
+        """Record the executed action."""
+
+        self.executed_actions.append(action)
 
 
 class RecordingExecutor(DosingExecutor):
@@ -17,7 +36,11 @@ class RecordingExecutor(DosingExecutor):
 
     def __init__(self) -> None:
         """Initialize the executor."""
-        super().__init__()
+
+        self.driver = DummyPumpDriver()
+
+        super().__init__(self.driver)
+
         self.executed_actions: list[DosingAction] = []
 
     async def execute_action(
@@ -25,6 +48,7 @@ class RecordingExecutor(DosingExecutor):
         action: DosingAction,
     ) -> None:
         """Record executed actions."""
+
         self.executed_actions.append(action)
 
 
@@ -33,7 +57,9 @@ class RunningStateExecutor(DosingExecutor):
 
     def __init__(self) -> None:
         """Initialize the executor."""
-        super().__init__()
+
+        super().__init__(DummyPumpDriver())
+
         self.running_during_execution = False
 
     async def execute_action(
@@ -41,6 +67,7 @@ class RunningStateExecutor(DosingExecutor):
         action: DosingAction,
     ) -> None:
         """Capture the running state."""
+
         self.running_during_execution = self.running
         await asyncio.sleep(0)
 
@@ -48,11 +75,17 @@ class RunningStateExecutor(DosingExecutor):
 class FailingExecutor(DosingExecutor):
     """Executor that always fails."""
 
+    def __init__(self) -> None:
+        """Initialize the executor."""
+
+        super().__init__(DummyPumpDriver())
+
     async def execute_action(
         self,
         action: DosingAction,
     ) -> None:
         """Raise an exception."""
+
         raise RuntimeError("Execution failed")
 
 
@@ -61,7 +94,9 @@ class CancelExecutor(DosingExecutor):
 
     def __init__(self) -> None:
         """Initialize the executor."""
-        super().__init__()
+
+        super().__init__(DummyPumpDriver())
+
         self.executed_actions: list[DosingAction] = []
 
     async def execute_action(
@@ -69,17 +104,21 @@ class CancelExecutor(DosingExecutor):
         action: DosingAction,
     ) -> None:
         """Execute one action and request cancellation."""
+
         self.executed_actions.append(action)
         self.stop()
 
 
-def create_plan(count: int) -> DosingPlan:
+def create_plan(
+    count: int,
+) -> DosingPlan:
     """Create a dosing plan."""
+
     plan = DosingPlan()
 
     for index in range(count):
         plan.add(
-            pump_id=f"pump_{index}",
+            role=Role.PH_UP_PUMP,
             volume_ml=10.0,
             runtime_seconds=5.0,
             reason=f"Action {index}",
@@ -90,7 +129,10 @@ def create_plan(count: int) -> DosingPlan:
 
 def test_running_initially_false() -> None:
     """Executor should not be running after creation."""
-    executor = DosingExecutor()
+
+    executor = DosingExecutor(
+        DummyPumpDriver(),
+    )
 
     assert executor.running is False
     assert executor.cancelled is False
@@ -99,7 +141,9 @@ def test_running_initially_false() -> None:
 @pytest.mark.asyncio
 async def test_execute_empty_plan() -> None:
     """Executing an empty plan should succeed."""
+
     executor = RecordingExecutor()
+
     plan = DosingPlan()
 
     result = await executor.execute(plan)
@@ -117,7 +161,9 @@ async def test_execute_empty_plan() -> None:
 @pytest.mark.asyncio
 async def test_execute_actions_in_order() -> None:
     """Actions should be executed in order."""
+
     executor = RecordingExecutor()
+
     plan = create_plan(3)
 
     result = await executor.execute(plan)
@@ -135,7 +181,9 @@ async def test_execute_actions_in_order() -> None:
 @pytest.mark.asyncio
 async def test_running_true_during_execution() -> None:
     """Running should be true while an action is executed."""
+
     executor = RunningStateExecutor()
+
     plan = create_plan(1)
 
     result = await executor.execute(plan)
@@ -148,7 +196,9 @@ async def test_running_true_during_execution() -> None:
 @pytest.mark.asyncio
 async def test_running_reset_after_exception() -> None:
     """Running should always be reset after an exception."""
+
     executor = FailingExecutor()
+
     plan = create_plan(1)
 
     with pytest.raises(RuntimeError):
@@ -161,7 +211,10 @@ async def test_running_reset_after_exception() -> None:
 @pytest.mark.asyncio
 async def test_execute_while_running_raises() -> None:
     """Starting execution while already running should fail."""
-    executor = DosingExecutor()
+
+    executor = DosingExecutor(
+        DummyPumpDriver(),
+    )
 
     executor._running = True
 
@@ -174,7 +227,9 @@ async def test_execute_while_running_raises() -> None:
 @pytest.mark.asyncio
 async def test_stop_cancels_remaining_actions() -> None:
     """Execution should stop after cancellation."""
+
     executor = CancelExecutor()
+
     plan = create_plan(5)
 
     result = await executor.execute(plan)
@@ -191,7 +246,10 @@ async def test_stop_cancels_remaining_actions() -> None:
 
 def test_stop() -> None:
     """Stop should request cancellation."""
-    executor = DosingExecutor()
+
+    executor = DosingExecutor(
+        DummyPumpDriver(),
+    )
 
     executor.stop()
 
