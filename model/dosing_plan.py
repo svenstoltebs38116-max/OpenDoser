@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from ..roles import Role
+
 
 @dataclass(slots=True)
 class DosingAction:
     """Represents a single dosing action."""
 
-    pump_id: str
+    role: Role
 
     volume_ml: float
 
@@ -28,7 +30,7 @@ class DosingPlan:
 
     def add(
         self,
-        pump_id: str,
+        role: Role,
         volume_ml: float,
         runtime_seconds: float = 0.0,
         reason: str = "",
@@ -40,7 +42,7 @@ class DosingPlan:
 
         self.actions.append(
             DosingAction(
-                pump_id=pump_id,
+                role=role,
                 volume_ml=volume_ml,
                 runtime_seconds=runtime_seconds,
                 reason=reason,
