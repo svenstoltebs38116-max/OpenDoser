@@ -7,14 +7,19 @@ from time import monotonic
 from .model.dosing_plan import DosingAction
 from .model.dosing_plan import DosingPlan
 from .model.execution_result import ExecutionResult
+from .pump_driver import PumpDriver
 
 
 class DosingExecutor:
     """Executes dosing plans."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        driver: PumpDriver,
+    ) -> None:
         """Initialize the executor."""
 
+        self._driver = driver
         self._running = False
         self._cancel_requested = False
 
@@ -74,12 +79,7 @@ class DosingExecutor:
     ) -> None:
         """Execute one dosing action."""
 
-        #
-        # Placeholder.
-        # Hardware control will be implemented later.
-        #
-
-        return
+        await self._driver.execute_action(action)
 
     def stop(self) -> None:
         """Request cancellation of the current execution."""
