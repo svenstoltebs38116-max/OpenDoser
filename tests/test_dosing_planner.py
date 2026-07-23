@@ -2,6 +2,7 @@
 
 from custom_components.opendoser.dosing_planner import DosingPlanner
 from custom_components.opendoser.model.dosing_plan import DosingPlan
+from custom_components.opendoser.roles import Role
 
 from .helpers import (
     create_feed_program,
@@ -366,7 +367,7 @@ def test_plan_ph_low_creates_action() -> None:
 
     action = plan.actions[0]
 
-    assert action.pump_id == "pump_up"
+    assert action.role == Role.PH_UP_PUMP
     assert action.reason == "pH correction"
     assert action.volume_ml > 0
     assert action.runtime_seconds > 0
@@ -415,7 +416,7 @@ def test_plan_ph_high_creates_action() -> None:
 
     action = plan.actions[0]
 
-    assert action.pump_id == "pump_down"
+    assert action.role == Role.PH_DOWN_PUMP
     assert action.reason == "pH correction"
     assert action.volume_ml > 0
     assert action.runtime_seconds > 0
