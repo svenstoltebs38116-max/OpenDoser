@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from .dosing_calculator import DosingCalculator
 from .model.dosing_plan import DosingPlan
 from .model.feed_program import FeedProgram
+from .model.feed_program_nutrient import FeedProgramNutrient
 from .model.recipe import Recipe
 from .model.system import System
 from .model.system_state import SystemState
@@ -11,6 +13,11 @@ from .model.system_state import SystemState
 
 class DosingPlanner:
     """Creates dosing plans."""
+
+    def __init__(self) -> None:
+        """Initialize the planner."""
+
+        self._calculator = DosingCalculator()
 
     def create_plan(
         self,
@@ -75,6 +82,7 @@ class DosingPlanner:
             system=system,
             nutrient_id=nutrient_id,
             delta=delta,
+            ratio=1.0,
             reason="pH correction",
         )
 
@@ -99,11 +107,9 @@ class DosingPlanner:
         if delta <= 0:
             return
 
-        nutrients = [
-            entry
-            for entry in feed_program.ec_nutrients
-            if entry.enabled and entry.ratio > 0
-        ]
+        nutrients = self._enabled_ec_nutrients(
+            feed_program,
+        )
 
         if not nutrients:
             return
@@ -113,16 +119,39 @@ class DosingPlanner:
             for entry in nutrients
         )
 
+        if total_ratio <= 0:
+            return
+
         for entry in nutrients:
+
+            ratio = entry.ratio / total_ratio
 
             self._add_action(
                 plan=plan,
                 system=system,
                 nutrient_id=entry.nutrient_id,
                 delta=delta,
-                ratio=entry.ratio / total_ratio,
+                ratio=ratio,
                 reason="EC correction",
             )
+
+    def _enabled_ec_nutrients(
+        self,
+        feed_program: FeedProgram,
+    ) -> list[FeedProgramNutrient]:
+        """Return enabled EC nutrients."""
+
+        nutrients = [
+            entry
+            for entry in feed_program.ec_nutrients
+            if entry.valid
+        ]
+
+        nutrients.sort(
+            key=lambda entry: entry.priority,
+        )
+
+        return nutrients
 
     def _add_action(
         self,
@@ -133,7 +162,7 @@ class DosingPlanner:
         reason: str,
         ratio: float = 1.0,
     ) -> None:
-        """Add a dosing action for a nutrient."""
+        """Add a dosing action."""
 
         nutrient = system.get_nutrient(
             nutrient_id,
@@ -149,19 +178,11 @@ class DosingPlanner:
         if pump is None:
             return
 
-        if nutrient.strength <= 0:
-            return
-
-        volume = (
-            delta
-            * system.water_volume_liters
-            / nutrient.strength
-        )
-
-        volume *= ratio
-
-        volume = nutrient.clamp_volume(
-            volume,
+        volume = self._calculator.calculate_volume(
+            nutrient=nutrient,
+            delta=delta,
+            water_volume_liters=system.water_volume_liters,
+            ratio=ratio,
         )
 
         if volume <= 0:
