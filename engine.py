@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
+from .dosing_executor import DosingExecutor
 from .dosing_planner import DosingPlanner
 from .model.dosing_plan import DosingPlan
+from .model.execution_result import ExecutionResult
 from .model.feed_program import FeedProgram
 from .model.system import System
 from .model.system_state import SystemState
+from .pump_driver import PumpDriver
 
 
 class OpenDoserEngine:
     """Business logic layer for OpenDoser."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        driver: PumpDriver,
+    ) -> None:
         """Initialize the engine."""
 
         self._planner = DosingPlanner()
+        self._executor = DosingExecutor(driver)
 
     def validate(
         self,
@@ -77,3 +84,16 @@ class OpenDoserEngine:
             feed_program=feed_program,
             state=state,
         )
+
+    async def execute(
+        self,
+        plan: DosingPlan,
+    ) -> ExecutionResult:
+        """Execute a dosing plan."""
+
+        return await self._executor.execute(plan)
+
+    def stop(self) -> None:
+        """Stop the current execution."""
+
+        self._executor.stop()
