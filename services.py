@@ -17,25 +17,33 @@ async def async_register_services(
     async def execute_service(
         call: ServiceCall,
     ) -> None:
-        """Execute a dosing cycle."""
+        """Execute the current dosing plan."""
 
-        #
-        # Placeholder.
-        #
-        # The actual execution will be implemented
-        # after the executor is connected.
-        #
+        await coordinator.async_execute_plan()
 
-        return
+    async def stop_service(
+        call: ServiceCall,
+    ) -> None:
+        """Stop the current dosing execution."""
 
-    if hass.services.has_service(
+        coordinator.stop_execution()
+
+    if not hass.services.has_service(
         DOMAIN,
         "execute",
     ):
-        return
+        hass.services.async_register(
+            DOMAIN,
+            "execute",
+            execute_service,
+        )
 
-    hass.services.async_register(
+    if not hass.services.has_service(
         DOMAIN,
-        "execute",
-        execute_service,
-    )
+        "stop",
+    ):
+        hass.services.async_register(
+            DOMAIN,
+            "stop",
+            stop_service,
+        )
