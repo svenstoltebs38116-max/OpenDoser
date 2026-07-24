@@ -64,7 +64,7 @@ class DosingExecutor:
 
         except Exception as err:
             result.error = str(err)
-            raise
+            result.completed = False
 
         finally:
             result.duration_seconds = monotonic() - start_time
