@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -17,10 +18,15 @@ class Pump:
     name: str
 
     #
-    # Home Assistant
+    # Driver
     #
 
-    entity_id: str = ""
+    driver: dict[str, Any] = field(
+        default_factory=lambda: {
+            "type": "entity",
+            "entity_id": "",
+        },
+    )
 
     #
     # Calibration
@@ -89,7 +95,7 @@ class Pump:
         return {
             "id": self.id,
             "name": self.name,
-            "entity_id": self.entity_id,
+            "driver": self.driver,
             "ml_per_second": self.ml_per_second,
             "calibration_factor": self.calibration_factor,
             "calibrated": self.calibrated,
@@ -104,10 +110,19 @@ class Pump:
     ) -> Pump:
         """Deserialize a pump."""
 
+        if "driver" in data:
+            driver = data["driver"]
+        else:
+            # Migration from legacy entity_id
+            driver = {
+                "type": "entity",
+                "entity_id": data.get("entity_id", ""),
+            }
+
         return cls(
             id=data["id"],
             name=data["name"],
-            entity_id=data.get("entity_id", ""),
+            driver=driver,
             ml_per_second=data.get("ml_per_second", 1.0),
             calibration_factor=data.get("calibration_factor", 1.0),
             calibrated=data.get("calibrated", False),
