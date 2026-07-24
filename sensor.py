@@ -6,6 +6,7 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import OpenDoserCoordinator
@@ -30,7 +31,10 @@ async def async_setup_entry(
     )
 
 
-class OpenDoserStatusSensor(SensorEntity):
+class OpenDoserStatusSensor(
+    CoordinatorEntity[OpenDoserCoordinator],
+    SensorEntity,
+):
     """Diagnostic sensor for OpenDoser."""
 
     _attr_has_entity_name = True
@@ -44,7 +48,7 @@ class OpenDoserStatusSensor(SensorEntity):
     ) -> None:
         """Initialize."""
 
-        self.coordinator = coordinator
+        super().__init__(coordinator)
 
     @property
     def native_value(self):
@@ -102,8 +106,3 @@ class OpenDoserStatusSensor(SensorEntity):
             )
 
         return attributes
-
-    async def async_update(self):
-        """Update."""
-
-        await self.coordinator.async_request_refresh()
