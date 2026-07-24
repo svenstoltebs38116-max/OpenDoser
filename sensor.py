@@ -50,7 +50,19 @@ class OpenDoserStatusSensor(SensorEntity):
     def native_value(self):
         """Return current status."""
 
-        return "running"
+        if not self.coordinator.system_state.available:
+            return "waiting_for_sensors"
+
+        if self.coordinator.last_plan is None:
+            return "idle"
+
+        if self.coordinator.last_plan.warnings:
+            return "warning"
+
+        if self.coordinator.last_plan.actions:
+            return "ready"
+
+        return "idle"
 
     @property
     def extra_state_attributes(self):
@@ -80,6 +92,14 @@ class OpenDoserStatusSensor(SensorEntity):
         attributes["configured_roles"] = len(ROLE_DEFINITIONS)
         attributes["assigned_roles"] = assigned
         attributes["missing_roles"] = missing
+
+        if self.coordinator.last_plan is not None:
+            attributes["warnings"] = list(
+                self.coordinator.last_plan.warnings
+            )
+            attributes["planned_actions"] = len(
+                self.coordinator.last_plan.actions
+            )
 
         return attributes
 
