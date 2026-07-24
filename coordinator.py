@@ -40,15 +40,15 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=5),
         )
 
-        _LOGGER.warning("ENTRY.DATA = %s", dict(entry.data))
-        _LOGGER.warning("ENTRY.OPTIONS = %s", dict(entry.options))
+        _LOGGER.debug("ENTRY.DATA = %s", dict(entry.data))
+        _LOGGER.debug("ENTRY.OPTIONS = %s", dict(entry.options))
 
         self.registry = RoleRegistry()
 
         assignments = dict(entry.data)
         assignments.update(entry.options)
 
-        _LOGGER.warning("ASSIGNMENTS = %s", assignments)
+        _LOGGER.debug("ASSIGNMENTS = %s", assignments)
 
         for role in ROLE_DEFINITIONS:
             entity_id = assignments.get(role.value)
@@ -56,7 +56,7 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
             if entity_id:
                 self.registry.set(role, entity_id)
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "REGISTERED ROLES = %s",
             {
                 role.value: self.registry.get(role)
@@ -105,7 +105,7 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         ec = self.get_role_value(Role.EC_SENSOR)
         temperature = self.get_role_value(Role.TEMPERATURE_SENSOR)
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "OpenDoser sensor values: ph=%r ec=%r temperature=%r",
             ph,
             ec,
@@ -120,7 +120,7 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
             salinity=None,
         )
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "SystemState.available=%s",
             self.system_state.available,
         )
