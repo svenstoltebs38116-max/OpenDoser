@@ -51,7 +51,7 @@ class EntityManager:
         entity_id = self.get_entity(role)
 
         if entity_id is None:
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "Role %s has no assigned entity",
                 role.value,
             )
@@ -59,7 +59,7 @@ class EntityManager:
 
         state = self.hass.states.get(entity_id)
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "Role=%s Entity=%s State=%s",
             role.value,
             entity_id,
