@@ -62,12 +62,18 @@ class Configuration:
             Pump(
                 id="pump_ph_down",
                 name="pH Down Pump",
-                entity_id="switch.ph_down_pump",
+                driver={
+                    "type": "entity",
+                    "entity_id": "switch.ph_down_pump",
+                },
             ),
             Pump(
                 id="pump_ec",
                 name="EC Pump",
-                entity_id="switch.ec_pump",
+                driver={
+                    "type": "entity",
+                    "entity_id": "switch.ec_pump",
+                },
             ),
         ]
 
