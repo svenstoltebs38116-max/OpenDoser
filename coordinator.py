@@ -155,20 +155,23 @@ class OpenDoserCoordinator(DataUpdateCoordinator):
         if self.last_plan is None:
             raise RuntimeError("No dosing plan available.")
 
-        missing_roles: set[str] = set()
+        missing_labels: set[str] = set()
 
         for action in self.last_plan.actions:
             if self.registry.get(action.role) is None:
-                missing_roles.add(action.role.value)
+                missing_labels.add(
+                    ROLE_DEFINITIONS[action.role].label,
+                )
 
-        if missing_roles:
+        if missing_labels:
             result = ExecutionResult()
             result.completed = False
             result.cancelled = False
             result.actions_executed = 0
             result.error = (
+                "Cannot execute dosing plan. "
                 "Missing entity assignments: "
-                + ", ".join(sorted(missing_roles))
+                + ", ".join(sorted(missing_labels))
             )
 
             _LOGGER.warning(result.error)
