@@ -29,31 +29,32 @@ async def async_register_services(
             _LOGGER.warning(
                 "Execute requested but no dosing plan is available."
             )
-        else:
+            return
+
+        _LOGGER.info(
+            "Executing dosing plan: %d action(s), %d warning(s)",
+            len(plan.actions),
+            len(plan.warnings),
+        )
+
+        for index, action in enumerate(
+            plan.actions,
+            start=1,
+        ):
             _LOGGER.info(
-                "Executing dosing plan: %d action(s), %d warning(s)",
-                len(plan.actions),
-                len(plan.warnings),
+                "Action %d: role=%s volume=%.2f ml runtime=%.2f s reason=%s",
+                index,
+                action.role.value,
+                action.volume_ml,
+                action.runtime_seconds,
+                action.reason,
             )
 
-            for index, action in enumerate(
-                plan.actions,
-                start=1,
-            ):
-                _LOGGER.info(
-                    "Action %d: role=%s volume=%.2f ml runtime=%.2f s reason=%s",
-                    index,
-                    action.role.value,
-                    action.volume_ml,
-                    action.runtime_seconds,
-                    action.reason,
-                )
-
-            for warning in plan.warnings:
-                _LOGGER.warning(
-                    "Plan warning: %s",
-                    warning,
-                )
+        for warning in plan.warnings:
+            _LOGGER.warning(
+                "Plan warning: %s",
+                warning,
+            )
 
         result = await coordinator.async_execute_plan()
 
