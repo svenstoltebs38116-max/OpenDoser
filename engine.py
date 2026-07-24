@@ -36,8 +36,22 @@ class OpenDoserEngine:
         if not system.recipe.enabled:
             warnings.append("Recipe is disabled.")
 
-        if not state.available:
-            warnings.append("Required sensors unavailable.")
+        missing_sensors: list[str] = []
+
+        if state.ph is None:
+            missing_sensors.append("pH Sensor")
+
+        if state.ec is None:
+            missing_sensors.append("EC Sensor")
+
+        if state.temperature is None:
+            missing_sensors.append("Temperature Sensor")
+
+        if missing_sensors:
+            warnings.append(
+                "Missing sensor values: "
+                + ", ".join(missing_sensors)
+            )
 
         if system.recipe.feed_program_id is None:
             warnings.append("No feed program selected.")
