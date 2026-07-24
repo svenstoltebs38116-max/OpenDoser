@@ -28,6 +28,16 @@ class System:
     water_volume_liters: float = 100.0
 
     #
+    # Dosing
+    #
+    # Waiting time after every dosing action to allow the
+    # nutrient solution to mix before the next component
+    # is added.
+    #
+
+    mix_delay_seconds: float = 180.0
+
+    #
     # Hardware
     #
 
@@ -165,6 +175,7 @@ class System:
         return {
             "recipe": self.recipe.to_dict(),
             "water_volume_liters": self.water_volume_liters,
+            "mix_delay_seconds": self.mix_delay_seconds,
             "pumps": [
                 pump.to_dict()
                 for pump in self.pumps.values()
@@ -197,6 +208,10 @@ class System:
             water_volume_liters=data.get(
                 "water_volume_liters",
                 100.0,
+            ),
+            mix_delay_seconds=data.get(
+                "mix_delay_seconds",
+                180.0,
             ),
         )
 
