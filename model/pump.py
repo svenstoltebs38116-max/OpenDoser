@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from ..roles import Role
+
 
 @dataclass(slots=True)
 class Pump:
@@ -16,6 +18,7 @@ class Pump:
 
     id: str
     name: str
+    role: Role
 
     #
     # Driver
@@ -95,6 +98,7 @@ class Pump:
         return {
             "id": self.id,
             "name": self.name,
+            "role": self.role.value,
             "driver": self.driver,
             "ml_per_second": self.ml_per_second,
             "calibration_factor": self.calibration_factor,
@@ -113,15 +117,39 @@ class Pump:
         if "driver" in data:
             driver = data["driver"]
         else:
-            # Migration from legacy entity_id
             driver = {
                 "type": "entity",
                 "entity_id": data.get("entity_id", ""),
             }
 
+        #
+        # Migration for older configurations
+        #
+
+        role_name = data.get("role")
+
+        if role_name is None:
+            pump_id = data.get("id", "")
+
+            mapping = {
+                "pump_ph_down": Role.PH_DOWN_PUMP,
+                "pump_ph_up": Role.PH_UP_PUMP,
+                "pump_ec": Role.EC_A_PUMP,
+                "ec_a": Role.EC_A_PUMP,
+                "ec_b": Role.EC_B_PUMP,
+            }
+
+            role = mapping.get(
+                pump_id,
+                Role.EC_A_PUMP,
+            )
+        else:
+            role = Role(role_name)
+
         return cls(
             id=data["id"],
             name=data["name"],
+            role=role,
             driver=driver,
             ml_per_second=data.get("ml_per_second", 1.0),
             calibration_factor=data.get("calibration_factor", 1.0),

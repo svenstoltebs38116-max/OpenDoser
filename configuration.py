@@ -8,6 +8,7 @@ from .model.nutrient import Nutrient
 from .model.pump import Pump
 from .model.recipe import Recipe
 from .model.system import System
+from .roles import Role
 
 
 class Configuration:
@@ -62,6 +63,7 @@ class Configuration:
             Pump(
                 id="pump_ph_down",
                 name="pH Down Pump",
+                role=Role.PH_DOWN_PUMP,
                 driver={
                     "type": "entity",
                     "entity_id": "switch.ph_down_pump",
@@ -70,6 +72,7 @@ class Configuration:
             Pump(
                 id="pump_ec",
                 name="EC Pump",
+                role=Role.EC_A_PUMP,
                 driver={
                     "type": "entity",
                     "entity_id": "switch.ec_pump",
