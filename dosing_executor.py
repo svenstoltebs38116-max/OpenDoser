@@ -50,9 +50,12 @@ class DosingExecutor:
         self._cancel_requested = False
 
         start_time = monotonic()
+        current_action: DosingAction | None = None
 
         try:
             for action in plan.actions:
+                current_action = action
+
                 if self._cancel_requested:
                     result.cancelled = True
                     break
@@ -63,7 +66,15 @@ class DosingExecutor:
             result.completed = not result.cancelled
 
         except Exception as err:
-            result.error = str(err)
+            if current_action is not None:
+                result.error = (
+                    f"{err} "
+                    f"(role={current_action.role.value}, "
+                    f"volume={current_action.volume_ml} ml)"
+                )
+            else:
+                result.error = str(err)
+
             result.completed = False
 
         finally:
